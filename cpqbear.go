@@ -3,49 +3,47 @@ package cpqbear
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
+	"time"
 )
 
-func formatJSON(data []byte) string {
-	var out bytes.Buffer
-	err := json.Indent(&out, data, "", " ")
-
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	d := out.Bytes()
-	return string(d)
+type AccessTokenResponse struct {
+	AccessToken string `json:"access_token"`
 }
 
-func GetAccessToken(url string, username string, password string) {
+func GetAccessToken(url string, username string, password string) (string, error) {
 	payload := []byte("grant_type=password&username=" + username + "&password=" + password)
 
-	request, error := http.NewRequest("GET", url, bytes.NewBuffer(payload))
-	if error != nil {
-		fmt.Println(error)
+	request, err := http.NewRequest("GET", url, bytes.NewBuffer(payload))
+	if err != nil {
+		return "", err
 	}
+
 	request.Header.Set("Content-Type", "application/json; charset=utf-8")
 
-	client := &http.Client{}
-	response, error := client.Do(request)
-
-	if error != nil {
-		fmt.Println(error)
+	client := &http.Client{
+		Timeout: 5 * time.Second,
 	}
 
-	responseBody, error := io.ReadAll(response.Body)
-
-	if error != nil {
-		fmt.Println(error)
+	response, err := client.Do(request)
+	if err != nil {
+		return "", err
 	}
 
-	formattedData := formatJSON(responseBody)
-	fmt.Println("Status: ", response.Status)
-	fmt.Println("Response body: ", formattedData)
+	responseBody, err := io.ReadAll(response.Body)
+	if err != nil {
+		return "", err
+	}
 
-	// clean up memory after execution
 	defer response.Body.Close()
+
+	var tokenResponse AccessTokenResponse
+
+	err = json.Unmarshal(responseBody, &tokenResponse)
+	if err != nil {
+		return "", err
+	}
+
+	return tokenResponse.AccessToken, nil
 }
