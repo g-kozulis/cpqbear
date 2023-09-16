@@ -21,7 +21,7 @@ func formatJSON(data []byte) string {
 }
 
 func GetAccessToken(url string, username string, password string) {
-	payload := []byte("grant+type=password&username=" + username + "&password=" + password)
+	payload := []byte("grant_type=password&username=" + username + "&password=" + password)
 
 	request, error := http.NewRequest("GET", url, bytes.NewBuffer(payload))
 	if error != nil {
